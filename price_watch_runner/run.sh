@@ -5,7 +5,7 @@ set -euo pipefail
 
 OPTS=/data/options.json
 REPO_URL=$(jq -r '.repo_url' "$OPTS")
-TOKEN=$(jq -r '.registration_token // ""' "$OPTS")
+TOKEN=$(jq -r '.registration_token // ""' "$OPTS" | tr -d '[:space:]')
 NAME=$(jq -r '.runner_name // "home-assistant"' "$OPTS")
 export RUNNER_ALLOW_RUNASROOT=1
 
@@ -30,7 +30,7 @@ if [ ! -f .runner ]; then
     echo "Not registered yet: paste a registration token in the add-on's Configuration tab, save, and restart."
     sleep 3600; exit 1
   fi
-  echo "Registering runner '${NAME}' with ${REPO_URL}…"
+  echo "Registering runner '${NAME}' with ${REPO_URL} (code ${#TOKEN} characters, ends …${TOKEN: -4})…"
   ./config.sh --unattended --url "$REPO_URL" --token "$TOKEN" --name "$NAME" --labels home --replace
   echo "Registered. The token is no longer needed."
 fi
