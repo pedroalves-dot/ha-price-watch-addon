@@ -1,0 +1,19 @@
+name: Price watch runner
+version: "1.0.0"
+slug: price_watch_runner
+description: Runs the Price watch price checks from your home connection (GitHub Actions self-hosted runner).
+url: https://github.com/pedroalves-dot/price-watch
+arch:
+  - aarch64
+  - amd64
+init: false
+startup: application
+boot: auto
+options:
+  repo_url: https://github.com/pedroalves-dot/price-watch
+  registration_token: ""
+  runner_name: home-assistant
+schema:
+  repo_url: url
+  registration_token: password?
+  runner_name: str
