@@ -1,39 +1,37 @@
 #!/usr/bin/env bash
-# Downloads GitHub's Actions runner into /data (kept across restarts/updates),
-# registers it once with the token from the Configuration tab, then waits for jobs.
-set -euo pipefail
+# Downloads the Price watch code from GitHub, then lets scripts/home.mjs wait for the next check
+# (scheduled times, or "check now" from the web app / Telegram), run it, and exit. Repeat.
+set -uo pipefail
 
 OPTS=/data/options.json
-REPO_URL=$(jq -r '.repo_url' "$OPTS")
-TOKEN=$(jq -r '.registration_token // ""' "$OPTS" | tr -d '[:space:]')
-NAME=$(jq -r '.runner_name // "home-assistant"' "$OPTS")
-export RUNNER_ALLOW_RUNASROOT=1
+export GITHUB_REPO=$(jq -r '.repo' "$OPTS")
+export GITHUB_TOKEN=$(jq -r '.github_token' "$OPTS" | tr -d '[:space:]')
+export TELEGRAM_BOT_TOKEN=$(jq -r '.telegram_bot_token' "$OPTS" | tr -d '[:space:]')
+export TELEGRAM_CHAT_ID=$(jq -r '.telegram_chat_id' "$OPTS" | tr -d '[:space:]')
+export CHECK_TIMES=$(jq -r '.check_times' "$OPTS")
+export LAST_RUN_FILE=/data/last-run.json
+APP=/data/app
 
-DIR=/data/runner
-mkdir -p "$DIR"
-cd "$DIR"
+# The old GitHub runner (v1) lived here; free the space.
+rm -rf /data/runner
 
-if [ ! -f ./config.sh ]; then
-  case "$(uname -m)" in
-    aarch64) ARCH=arm64 ;;
-    x86_64)  ARCH=x64 ;;
-    *) echo "Unsupported CPU: $(uname -m) (needs a 64-bit system)"; sleep 3600; exit 1 ;;
-  esac
-  VERSION=$(curl -fsSL https://api.github.com/repos/actions/runner/releases/latest | jq -r '.tag_name' | sed 's/^v//')
-  echo "Downloading GitHub runner ${VERSION} (${ARCH})…"
-  curl -fsSL -o runner.tgz "https://github.com/actions/runner/releases/download/v${VERSION}/actions-runner-linux-${ARCH}-${VERSION}.tar.gz"
-  tar xzf runner.tgz && rm runner.tgz
+if [ -z "$GITHUB_TOKEN" ] || [ -z "$TELEGRAM_BOT_TOKEN" ] || [ -z "$TELEGRAM_CHAT_ID" ]; then
+  echo "Fill in github_token, telegram_bot_token and telegram_chat_id in the Configuration tab, save, and restart."
+  sleep 3600; exit 1
 fi
 
-if [ ! -f .runner ]; then
-  if [ -z "$TOKEN" ]; then
-    echo "Not registered yet: paste a registration token in the add-on's Configuration tab, save, and restart."
-    sleep 3600; exit 1
+while true; do
+  rm -rf "$APP.new" && mkdir -p "$APP.new"
+  if curl -fsSL -H "Authorization: Bearer $GITHUB_TOKEN" "https://api.github.com/repos/$GITHUB_REPO/tarball/main" \
+     | tar xz --strip-components=1 -C "$APP.new"; then
+    rm -rf "$APP" && mv "$APP.new" "$APP"
+  elif [ -d "$APP" ]; then
+    echo "Couldn't download the latest code; using the copy from last time."
+  else
+    echo "Couldn't download the code from $GITHUB_REPO — check the repo name and that the token can read it. Retrying in 5 minutes."
+    sleep 300; continue
   fi
-  echo "Registering runner '${NAME}' with ${REPO_URL} (code ${#TOKEN} characters, ends …${TOKEN: -4})…"
-  ./config.sh --unattended --url "$REPO_URL" --token "$TOKEN" --name "$NAME" --labels home --replace
-  echo "Registered. The token is no longer needed."
-fi
 
-echo "Waiting for price checks…"
-exec ./run.sh
+  cd "$APP" && node --max-old-space-size=96 scripts/home.mjs
+  cd / && sleep 10
+done
