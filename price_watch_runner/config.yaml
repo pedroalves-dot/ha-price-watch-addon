@@ -1,5 +1,5 @@
 name: Price watch checker
-version: "2.0.1"
+version: "2.1.0"
 slug: price_watch_runner
 description: Checks your Price watch prices from your home connection, twice a day and when you ask.
 url: https://github.com/pedroalves-dot/price-watch
