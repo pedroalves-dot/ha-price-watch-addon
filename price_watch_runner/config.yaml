@@ -1,5 +1,5 @@
 name: Price watch checker
-version: "2.0.0"
+version: "2.0.1"
 slug: price_watch_runner
 description: Checks your Price watch prices from your home connection, twice a day and when you ask.
 url: https://github.com/pedroalves-dot/price-watch
@@ -22,4 +22,4 @@ schema:
   github_token: password
   telegram_bot_token: password
   telegram_chat_id: str
-  check_times: match(^\d{1,2}:\d{2}(,\s*\d{1,2}:\d{2})*$)
+  check_times: str
