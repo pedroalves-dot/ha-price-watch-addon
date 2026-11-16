@@ -16,4 +16,4 @@ and `/check` in Telegram are picked up within a minute. Uses about 50–80 MB of
    - `check_times` — local times, e.g. `08:00,20:00`
 4. Save → Start. The first start checks straight away and sends every price; then the log says "Waiting…".
 
-Works on 32- and 64-bit Raspberry Pi (armhf, armv7, aarch64) and amd64.
+Ready-made images (built on GitHub), so the Pi only downloads the add-on. Works on 32- and 64-bit Raspberry Pi (armhf, armv7, aarch64) and amd64.
